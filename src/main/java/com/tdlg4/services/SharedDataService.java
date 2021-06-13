@@ -10,6 +10,7 @@ import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.shareddata.*;
 import io.vertx.core.json.JsonObject;
+import com.tdlg4.resources.Hazelcast;
 
 /**
  *
@@ -18,30 +19,14 @@ import io.vertx.core.json.JsonObject;
 public class SharedDataService {
     
     //private static Vertx vertx = Vertx.vertx();
-    private static Vertx vertx =Vertx.currentContext().owner();
-
-    /*Sync*/
-    public void localMapSaveContextJson(String map, String key, String request) {
-
-        SharedData sharedData = vertx.sharedData();
-        LocalMap<String, String> map1 = sharedData.getLocalMap(map);
-        map1.put(key, request); // Strings are immutable so no need to copy
-    }
-
-    public String localMapGetContextJsonRequest(String map, String key) 
-    {
-        SharedData sharedData = vertx.sharedData();
-        LocalMap<String, String> map1 = sharedData.getLocalMap(map);
-        return map1.get(key);
-    }
-    /********************************************************/
-
-
+    private static Vertx vertx = Vertx.currentContext().owner();
+    //private static Vertx vertx=Hazelcast.vertx;
+    
     /*Async*/
     public void GetAsyncContextJson(String newMap, String key, Handler<AsyncResult<JsonObject>> resultHandler) {
         SharedData sharedData = vertx.sharedData();
 
-        sharedData.<String, JsonObject>getAsyncMap(newMap, res -> {
+        sharedData.<String, JsonObject>getClusterWideMap(newMap, res -> {
             if (res.succeeded()) {
                 AsyncMap<String, JsonObject> map = res.result();
                 map.get(key, resGet -> {
@@ -64,7 +49,7 @@ public class SharedDataService {
 
     public void SaveAsyncContextJson(String newMap, String key, JsonObject json, Handler<AsyncResult<JsonObject>> resultHandler) {
         SharedData sharedData = vertx.sharedData();
-        sharedData.<String, JsonObject>getAsyncMap(newMap, res -> {
+        sharedData.<String, JsonObject>getClusterWideMap(newMap, res -> {
             if (res.succeeded()) {
                 AsyncMap<String, JsonObject> map = res.result();
                 var r=map.put(key, json);
@@ -78,7 +63,7 @@ public class SharedDataService {
     public void counter(Vertx vertx) {
         SharedData sharedData = vertx.sharedData();
 
-        sharedData.getCounter("mycounter", res -> {
+        sharedData.getCounter("__vertx.haInfo", res -> {
           if (res.succeeded()) {
             Counter counter = res.result();
           } else {

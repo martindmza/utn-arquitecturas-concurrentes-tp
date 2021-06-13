@@ -8,6 +8,9 @@ package com.tdlg4.resources;
 import com.tdlg4.services.SharedDataService;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
+import io.vertx.core.VertxOptions;
+import io.vertx.core.eventbus.EventBus;
+import io.vertx.core.eventbus.EventBusOptions;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
@@ -37,18 +40,20 @@ public class HttpServer extends AbstractVerticle{
     private static final String API_POST_MEM = String.format("/%s", API_PATH_MEM);
     
     public JsonObject configJson= new JsonObject();
-    private final SharedDataService sds= new SharedDataService();
+
     
     /*cambiar luego por configuración */
     int port=7777;
-    String host="127.0.0.1";
+    String host="0.0.0.0";
     /**************************/
+    
     
     @Override
     public void start(Promise<Void> startPromise) throws Exception {
         
         try{
             /*agregar lectura configuracion*/
+
         }
         catch(Exception e)
         {
@@ -104,15 +109,13 @@ public class HttpServer extends AbstractVerticle{
         /* Test para Consulta objeto guardado en memoria local recibiendo key por parametro */
         String id = context.request().getParam("id");
         JsonObject json= new JsonObject();
-        //var a=sds.localMapGetContextJsonRequest(vertx, id); consulta sincrónica a mem local
-        sds.GetAsyncContextJson("map",id, resGet ->{
-            if (resGet.succeeded()) {
-                JsonObject a=resGet.result();
-                context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(a));
-            }
-            else
-            {
-                context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(resGet.cause()));
+        json.put("metodo", "get");
+        json.put("id",id);
+        vertx.eventBus().request(Hazelcast.SERVICE_ADDRESS, json, handler -> {
+            if (handler.succeeded()) {
+                    context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode((JsonObject) handler.result().body()));
+            } else {
+                    context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode("ERROR"));
             }
         });
         
@@ -122,13 +125,12 @@ public class HttpServer extends AbstractVerticle{
         /* Test para guardar objeto en memoria local */
         JsonObject request=new JsonObject (context.getBodyAsString());
         LOGGER.info("request: {0}" + request.toString());
-        sds.SaveAsyncContextJson("map",request.getString("id"), request, resSave -> {
-            if (resSave.succeeded()) {
-                LOGGER.info(String.format("Save context OK"));
-                context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode("OK"));
-            }else {
-                LOGGER.info(String.format("Save context Error"));
-                context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode("error"));
+        request.put("metodo", "save");
+        vertx.eventBus().request(Hazelcast.SERVICE_ADDRESS, request, handler -> {
+            if (handler.succeeded()) {
+                    context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode("OK"));
+            } else {
+                    context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode("ERROR"));
             }
         });
     }
