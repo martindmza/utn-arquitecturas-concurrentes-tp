@@ -35,7 +35,7 @@ import io.vertx.core.json.Json;
 public class Hazelcast extends AbstractVerticle implements Handler<Message<JsonObject>>{
     private static final Logger LOGGER = LoggerFactory.getLogger(Hazelcast.class);
     //public static Vertx vertx;
-    public static final String SERVICE_ADDRESS = "hazelcast-address789798798798";
+    public static final String SERVICE_ADDRESS = "hazelcast-address";
     Config hazelcastConfig = ConfigUtil.loadConfig();
 
     ClusterManager mgr = new HazelcastClusterManager(hazelcastConfig);
@@ -72,9 +72,11 @@ public class Hazelcast extends AbstractVerticle implements Handler<Message<JsonO
     @Override
     public void handle(Message<JsonObject> event) {
         JsonObject request = event.body();
-        if ((request.getString("metodo")).equals("save"))
+        JsonObject data=request.getJsonObject("data");
+        if ((request.getString("action")).equals("save"))
         {
-            sds.SaveAsyncContextJson("__vertx.haInfo", request.getString("id"), request, resSave -> {
+            
+            sds.SaveAsyncContextJson("__vertx.haInfo", data.getString("listName"), data, resSave -> {
                 if (resSave.succeeded()) {
                     LOGGER.info(String.format("Save context OK"));
                     event.reply(Json.encode("OK"));
@@ -84,7 +86,7 @@ public class Hazelcast extends AbstractVerticle implements Handler<Message<JsonO
                 }
             });
         }
-        else
+        else if ((request.getString("action")).equals("get"))
         {
             sds.GetAsyncContextJson("__vertx.haInfo", request.getString("id"), resGet -> {
                 if (resGet.succeeded()) {

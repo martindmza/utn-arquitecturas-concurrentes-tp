@@ -38,6 +38,7 @@ public class HttpServer extends AbstractVerticle{
     private static final String API_POST = String.format("/%s", API_PATH);
     private static final String API_GET_MEM = String.format("/%s/:id", API_PATH_MEM);
     private static final String API_POST_MEM = String.format("/%s", API_PATH_MEM);
+    private static final String API_PUT_MEM = String.format("/%s", API_PATH_MEM);
     
     public JsonObject configJson= new JsonObject();
 
@@ -72,6 +73,7 @@ public class HttpServer extends AbstractVerticle{
         router.post(API_POST).handler(this::apiPost);
         router.get(API_GET_MEM).handler(this::apiGetMem);
         router.post(API_POST_MEM).handler(this::apiPostMem);
+       //router.put(API_PUT_MEM).handler(this::apiPutMem);
         
         /* INFO del Servicio */
         sHtml="<h1>Bienvenidos al servicio TO DO LIST <h1>"+"<br>";
@@ -106,33 +108,55 @@ public class HttpServer extends AbstractVerticle{
     }   
     
     private void apiGetMem(RoutingContext context) {
-        /* Test para Consulta objeto guardado en memoria local recibiendo key por parametro */
-        String id = context.request().getParam("id");
-        JsonObject json= new JsonObject();
-        json.put("metodo", "get");
-        json.put("id",id);
-        vertx.eventBus().request(Hazelcast.SERVICE_ADDRESS, json, handler -> {
-            if (handler.succeeded()) {
-                    context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode((JsonObject) handler.result().body()));
-            } else {
-                    context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode("ERROR"));
-            }
-        });
+        LOGGER.info("METODO GET");
+        try
+        {
+            String id = context.request().getParam("id");
+            LOGGER.info("id: {0}" +id);
+            JsonObject json= new JsonObject();
+            json.put("action", "get");
+            json.put("id",id);
+            vertx.eventBus().request(Hazelcast.SERVICE_ADDRESS, json, handler -> {
+                if (handler.succeeded()) {
+                        context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode((JsonObject) handler.result().body()));
+                } else {
+                        context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode("ERROR"));
+                }
+            });
+        }
+        catch(Exception ex)
+        {
+            context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(ex.getMessage()));
+        }
         
     }
     
+    private void apiPutMem(RoutingContext context) {
+        
+        
+    }
+    
+    
+    
     private void apiPostMem (RoutingContext context) {
         /* Test para guardar objeto en memoria local */
-        JsonObject request=new JsonObject (context.getBodyAsString());
-        LOGGER.info("request: {0}" + request.toString());
-        request.put("metodo", "save");
-        vertx.eventBus().request(Hazelcast.SERVICE_ADDRESS, request, handler -> {
-            if (handler.succeeded()) {
-                    context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode("OK"));
-            } else {
-                    context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode("ERROR"));
-            }
-        });
+        try{
+            JsonObject jList=new JsonObject();
+            LOGGER.info("post request: {0}" + context.getBodyAsString());
+            jList.put("action", "save");
+            jList.put("data", new JsonObject (context.getBodyAsString()));
+            vertx.eventBus().request(Hazelcast.SERVICE_ADDRESS, jList, handler -> {
+                if (handler.succeeded()) {
+                        context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode("OK"));
+                } else {
+                        context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode("ERROR"));
+                }
+            });
+        }
+        catch(Exception ex)
+        {
+            context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(ex.getMessage()));
+        }
     }
     
     private void apiPost (RoutingContext context) {
