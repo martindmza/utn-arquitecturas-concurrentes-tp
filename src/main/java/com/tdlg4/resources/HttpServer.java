@@ -23,6 +23,7 @@ import io.vertx.ext.web.handler.CorsHandler;
 import java.util.HashSet;
 import java.util.Set;
 import io.vertx.core.json.Json;
+import com.tdlg4.services.Authenticator;
 
 /**
  *
@@ -32,17 +33,18 @@ public class HttpServer extends AbstractVerticle{
     String sHtml="";
     private static final Logger LOGGER = LoggerFactory.getLogger(HttpServer.class);
     private static final String API_PATH = "app";
-    private static final String API_PATH_MEM = "mem";
     
     /** Declaración de las rutas paths */
     private static final String API_POST = String.format("/%s", API_PATH);
-    private static final String API_GET_MEM = String.format("/%s/:id", API_PATH_MEM);
-    private static final String API_POST_MEM = String.format("/%s", API_PATH_MEM);
-    private static final String API_PUT_MEM = String.format("/%s", API_PATH_MEM);
+    private static final String API_GET_MEM = String.format("/%s/:id", API_PATH);
+    private static final String API_POST_MEM = String.format("/%s", API_PATH);
+    private static final String API_PUT_MEM = String.format("/%s", API_PATH);
+    private static final String API_POST_AUTH = String.format("/%s/login", API_PATH);
+
     
     public JsonObject configJson= new JsonObject();
 
-    
+    Authenticator auth= new Authenticator();
     /*cambiar luego por configuración */
     int port=7777;
     String host="0.0.0.0";
@@ -73,6 +75,7 @@ public class HttpServer extends AbstractVerticle{
         router.post(API_POST).handler(this::apiPost);
         router.get(API_GET_MEM).handler(this::apiGetMem);
         router.post(API_POST_MEM).handler(this::apiPostMem);
+        router.post(API_POST_AUTH).handler(this::apiPostAuth);
        //router.put(API_PUT_MEM).handler(this::apiPutMem);
         
         /* INFO del Servicio */
@@ -131,8 +134,32 @@ public class HttpServer extends AbstractVerticle{
         
     }
     
-    private void apiPutMem(RoutingContext context) {
+    private void apiPostAuth(RoutingContext context) {
         
+        try {
+            //String token=context.request().getHeader("Authenticator");
+            JsonObject request=new JsonObject (context.getBodyAsString());
+            LOGGER.info("request recv login: "+ request.toString());   
+            String token=auth.generateToken(request.getString("user"), request.getString("password"));
+            JsonObject resp=new JsonObject();
+            if(!token.isEmpty())
+            {
+                
+                resp.put("result", 0);
+                resp.put("token", token);
+                context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(resp));
+            }
+            else{
+                resp.put("result", 0);
+                context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(resp));
+        
+            }
+        }
+            
+        catch(Exception ex)
+        {
+            context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(ex.getMessage()));
+        }
         
     }
     
