@@ -31,11 +31,11 @@
     <value-collection-type>SET</value-collection-type>
   </multimap>
 
-  <map name="__vertx.haInfo">
+  <map name="vertx.list">
     <backup-count>1</backup-count>
   </map>
 
-  <map name="__vertx.nodeInfo">
+  <map name="vertx.task">
     <backup-count>1</backup-count>
   </map>
 

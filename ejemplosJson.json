@@ -1,0 +1,32 @@
+ {
+ 	"id": 1,
+     "listName": "lista_1",
+     "tasks": [{
+     	   "list":1,
+     	   "id": 1,
+             "name": "task_1_1",
+             "order": 1,
+             "status": "OK"
+         },
+         {
+             "taskName": "task_1_2",
+             "order": 2,
+             "status": "OK"
+         }
+     ]
+ }
+ 
+{
+ 	"id": 1,
+     "listName": "lista_1",
+     "tasks":[],
+     "task_ids":[]
+}
+
+{
+   "list":1,
+   "id": 1,
+   "name": "task_1_1",
+   "order": 1,
+   "status": "OK"
+}

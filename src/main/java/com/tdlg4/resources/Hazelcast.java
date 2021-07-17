@@ -27,6 +27,7 @@ import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonArray;
 
 /**
  *
@@ -36,6 +37,7 @@ public class Hazelcast extends AbstractVerticle implements Handler<Message<JsonO
     private static final Logger LOGGER = LoggerFactory.getLogger(Hazelcast.class);
     //public static Vertx vertx;
     public static final String SERVICE_ADDRESS = "hazelcast-address";
+    public JsonArray tasks=new JsonArray();
     Config hazelcastConfig = ConfigUtil.loadConfig();
 
     ClusterManager mgr = new HazelcastClusterManager(hazelcastConfig);
@@ -73,10 +75,9 @@ public class Hazelcast extends AbstractVerticle implements Handler<Message<JsonO
     public void handle(Message<JsonObject> event) {
         JsonObject request = event.body();
         JsonObject data=request.getJsonObject("data");
-        if ((request.getString("action")).equals("save"))
-        {
-            
-            sds.SaveAsyncContextJson("__vertx.haInfo", data.getString("listName"), data, resSave -> {
+        if ((request.getString("action")).equals("saveList"))
+        {            //"__vertx.haInfo"
+            sds.SaveAsyncContextJson("vertx.list", data.getString("id"), data, resSave -> {
                 if (resSave.succeeded()) {
                     LOGGER.info(String.format("Save context OK"));
                     event.reply(Json.encode("OK"));
@@ -88,17 +89,98 @@ public class Hazelcast extends AbstractVerticle implements Handler<Message<JsonO
         }
         else if ((request.getString("action")).equals("get"))
         {
-            sds.GetAsyncContextJson("__vertx.haInfo", request.getString("id"), resGet -> {
+            JsonObject resp=new JsonObject();
+            try{
+                
+            sds.GetAsyncContextJson("vertx.list", request.getString("id"), resGet -> {
                 if (resGet.succeeded()) {
                     LOGGER.info(String.format("Get context OK"));
                     LOGGER.info(resGet.result());
-                    JsonObject a=resGet.result();
-                    event.reply(a);
+                    JsonObject list=resGet.result();
+                    var arr=list.getJsonArray("task_ids");
+                    sds.GetAsyncArrayContextJson("vertx.task", arr, resGetTask -> {
+                        if (resGet.succeeded()) {
+                            LOGGER.info("resGetTask: "+resGetTask.result());
+                            list.put("tasks", resGetTask.result());
+                            LOGGER.info("lista final "+ list);
+                            event.reply(list);
+                        }
+                        else
+                        {
+                            LOGGER.info(String.format("Get context list Error 1"));
+                            event.fail(0, "error");
+                        }
+                    });
                 }else {
-                    LOGGER.info(String.format("Save context Error"));
-                    event.reply(Json.encode("error"));
+                    LOGGER.info(String.format("GET context list Error 2"));
+                    event.fail(0, "error");
                 }
             });
+            }
+            catch(Exception ex)
+            {
+                LOGGER.info(String.format("Save context Error"));
+                event.fail(0, "error");
+            }
+        }
+        else if ((request.getString("action")).equals("getTask"))
+        {
+            JsonObject resp=new JsonObject();
+            try{
+                
+            sds.GetAsyncContextJson("vertx.task", request.getString("id"), resGet -> {
+                if (resGet.succeeded()) {
+                    LOGGER.info(String.format("Get task context OK"));
+                    LOGGER.info(resGet.result());
+                    event.reply(resGet.result());
+                                    
+                }else {
+                    LOGGER.info(String.format("Save context Error"));
+                    event.fail(0, "error");
+                }
+            });
+            }
+            catch(Exception ex)
+            {
+                LOGGER.info(String.format("Save context Error"));
+                event.fail(0, "error");
+            }
+        }
+        else if((request.getString("action")).equals("saveTask"))
+        {
+            sds.SaveAsyncContextJson("vertx.task", data.getString("id"), data, resSaveTask -> {
+                if (resSaveTask.succeeded()) {
+                    LOGGER.info(String.format("Save context task OK"));
+                    sds.GetAsyncContextJson("vertx.list", data.getString("list"), resGet -> {
+                        if (resGet.succeeded()) {
+                            LOGGER.info(String.format("Get context OK"));
+                            LOGGER.info(resGet.result());
+                            JsonObject list=resGet.result();
+                            var arr=list.getJsonArray("task_ids");
+                            arr.add(data.getString("id"));
+                            LOGGER.info(arr);
+                            list.remove("task_ids");
+                            list.put("task_ids", arr);
+                            sds.SaveAsyncContextJson("vertx.list", data.getString("list"), list, resSaveList -> {
+                                if (resSaveList.succeeded()) {
+                                    LOGGER.info(String.format("Save task context OK"));
+                                    event.reply(Json.encode("OK"));
+                                }else {
+                                    LOGGER.info(String.format("Save task context Error"));
+                                    event.fail(0, "error");
+                                }
+                            });
+                        }else {
+                            LOGGER.info(String.format("save task Error"));
+                            event.fail(0, "error");
+                        }
+                    });
+                }else {
+                    LOGGER.info(String.format("Save task Error"));
+                    event.fail(0, "error");
+                }
+            });
+            
         }
     }
 

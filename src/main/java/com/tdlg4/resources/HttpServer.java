@@ -35,16 +35,18 @@ import io.vertx.core.http.HttpServerRequest;
 public class HttpServer extends AbstractVerticle{
     String sHtml="";
     private static final Logger LOGGER = LoggerFactory.getLogger(HttpServer.class);
-    private static final String API_PATH_MEM = "app/mem";
-    private static final String API_PATH = "app";
+    private static final String API_PATH_LIST = "app/list";
+    private static final String API_PATH_TASK = "app/task";
+    //private static final String API_PATH = "app";
     
     /** Declaración de las rutas paths */
     //private static final String API_POST = String.format("/%s", API_PATH);
-    private static final String API_GET_MEM = String.format("/%s/:id", API_PATH_MEM);
-    private static final String API_POST_MEM = String.format("/%s", API_PATH_MEM);
-    private static final String API_PUT_MEM = String.format("/%s", API_PATH_MEM);
-    private static final String API_POST_AUTH = String.format("/%s/login", API_PATH);
-    private static final String API_POST_AUTH_VALIDATE = String.format("/%s/validate", API_PATH);
+    private static final String API_GET_LIST = String.format("/%s/:id", API_PATH_LIST);
+    private static final String API_POST_LIST = String.format("/%s", API_PATH_LIST);
+    //private static final String API_POST_AUTH = String.format("/%s/login", API_PATH);
+    //private static final String API_POST_AUTH_VALIDATE = String.format("/%s/validate", API_PATH);
+    private static final String API_POST_TASK = String.format("/%s", API_PATH_TASK);
+    private static final String API_GET_TASK = String.format("/%s/:id", API_PATH_TASK);
     
     public JsonObject configJson= new JsonObject();
 
@@ -77,11 +79,13 @@ public class HttpServer extends AbstractVerticle{
         
         /* Rutas */
         //router.post(API_POST).handler(this::apiPost);
-        router.get(API_GET_MEM).handler(this::apiGetMem);
-        router.post(API_POST_MEM).handler(this::apiPostMem);
-        router.post(API_POST_AUTH).handler(this::apiPostAuth);
-        router.post(API_POST_AUTH_VALIDATE).handler(this::apiPostAuthValidate);
-       //router.put(API_PUT_MEM).handler(this::apiPutMem);
+        router.get(API_GET_LIST).handler(this::apiGetMem);
+        router.post(API_POST_LIST).handler(this::apiPostMem);
+        //router.post(API_POST_AUTH).handler(this::apiPostAuth);
+        //router.post(API_POST_AUTH_VALIDATE).handler(this::apiPostAuthValidate);
+        router.post(API_POST_TASK).handler(this::apiPostSaveTask);
+        router.get(API_GET_TASK).handler(this::apiGetTask);
+       
         
         /* INFO del Servicio */
         sHtml="<h1>Bienvenidos al servicio TO DO LIST <h1>"+"<br>";
@@ -117,24 +121,57 @@ public class HttpServer extends AbstractVerticle{
     
     private void apiGetMem(RoutingContext context) {
         LOGGER.info("METODO GET");
+        JsonObject resp=new JsonObject();
         try
         {
             String id = context.request().getParam("id");
-            LOGGER.info("id: {0}" +id);
+            LOGGER.info("id: " +id);
             JsonObject json= new JsonObject();
             json.put("action", "get");
             json.put("id",id);
             vertx.eventBus().request(Hazelcast.SERVICE_ADDRESS, json, handler -> {
                 if (handler.succeeded()) {
+                        LOGGER.info("respuestaGet: "+ handler.result());
                         context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode((JsonObject) handler.result().body()));
                 } else {
-                        context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode("ERROR"));
+                    LOGGER.info("respuestaGet Else");
+                    resp.put("result", false);
+                    context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(resp));
                 }
             });
         }
         catch(Exception ex)
         {
-            context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(ex.getMessage()));
+            LOGGER.info("error catch "+ ex.getMessage());
+            resp.put("result", false);
+            context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(resp));
+        }
+        
+    }
+    
+    private void apiGetTask(RoutingContext context) {
+        LOGGER.info("METODO GET");
+        JsonObject resp=new JsonObject();
+        try
+        {
+            String id = context.request().getParam("id");
+            LOGGER.info("id: " +id);
+            JsonObject json= new JsonObject();
+            json.put("action", "getTask");
+            json.put("id",id);
+            vertx.eventBus().request(Hazelcast.SERVICE_ADDRESS, json, handler -> {
+                if (handler.succeeded()) {
+                        context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode((JsonObject) handler.result().body()));
+                } else {
+                    resp.put("result", false);
+                    context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(resp));
+                }
+            });
+        }
+        catch(Exception ex)
+        {
+            resp.put("result", false);
+            context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(resp));
         }
         
     }
@@ -156,8 +193,7 @@ public class HttpServer extends AbstractVerticle{
             }
             else{
                 resp.put("result", false);
-                context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(resp));
-        
+                context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(resp));        
             }
         }
             
@@ -168,25 +204,28 @@ public class HttpServer extends AbstractVerticle{
         
     }
     
-    
-    
+
     private void apiPostMem (RoutingContext context) {
         /* Test para guardar objeto en memoria local */
+        JsonObject jList=new JsonObject();
         try{
-            JsonObject jList=new JsonObject();
-            LOGGER.info("post request: {0}" + context.getBodyAsString());
-            jList.put("action", "save");
+            LOGGER.info("post request save list: {0}" + context.getBodyAsString());
+            jList.put("action", "saveList");
             jList.put("data", new JsonObject (context.getBodyAsString()));
             vertx.eventBus().request(Hazelcast.SERVICE_ADDRESS, jList, handler -> {
                 if (handler.succeeded()) {
-                        context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode("OK"));
+                    jList.put("result", true);
+                    context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(jList));
                 } else {
-                        context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode("ERROR"));
+                    jList.put("result", false);
+                    context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(jList));
                 }
             });
         }
         catch(Exception ex)
         {
+            jList.put("result", false);
+            jList.put("message", ex.getMessage());
             context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(ex.getMessage()));
         }
     }
@@ -232,6 +271,30 @@ public class HttpServer extends AbstractVerticle{
         
     }
     
+    private void apiPostSaveTask (RoutingContext context) {
+        /* Test para guardar objeto en memoria local */
+        JsonObject jList=new JsonObject();
+        try{
+            LOGGER.info("post request save task: {0}" + context.getBodyAsString());
+            jList.put("action", "saveTask");
+            jList.put("data", new JsonObject (context.getBodyAsString()));
+            vertx.eventBus().request(Hazelcast.SERVICE_ADDRESS, jList, handler -> {
+                if (handler.succeeded()) {
+                    jList.put("result", true);
+                    context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(jList));
+                } else {
+                    jList.put("result", false);
+                    context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(jList));
+                }
+            });
+        }
+        catch(Exception ex)
+        {
+            jList.put("result", false);
+            jList.put("message", ex.getMessage());
+            context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(ex.getMessage()));
+        }
+    }
     
     protected void enableCorsSupport(Router router) {
         Set<String> allowHeaders = new HashSet<>();
