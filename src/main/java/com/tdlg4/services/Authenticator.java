@@ -6,6 +6,9 @@
 package com.tdlg4.services;
 
 import com.tdlg4.resources.HttpServer;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Future;
+import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
@@ -35,35 +38,43 @@ public class Authenticator {
 
     public String generateToken (String username, String password)
     {
-        try{
+        try
+        {
             LOGGER.info("user: "+username + " password:"+password);
             String token="";
-            if ("usuario".equals(username) && "tdlg4".equals(password)) {
-                LOGGER.info("entro if");
-                token = provider.generateToken(new JsonObject().put("sub", "paulo"));
-                LOGGER.info("token "+token);
+            if ("usuario".equals(username) && "tdlg4".equals(password) ||
+                "usuario2".equals(username) && "tdlg4".equals(password)) {
+                token = provider.generateToken(new JsonObject().put("admin", username));
                 
+            }
+            else if ("usuario3".equals(username) && "tdlg4".equals(password) ||
+                "usuario4".equals(username) && "tdlg4".equals(password)) {
+                token = provider.generateToken(new JsonObject().put("user", username));
             }
             return token;
         }
         catch(Exception ex)
         {
-            return ex.getMessage();
+            return ""; //ex.getMessage();
         }
         
     }
-    public boolean verifyToken(String token)
+    public void verifyToken(String token, Handler<AsyncResult<JsonObject>> resultHandler)
     {
+        JsonObject val = new JsonObject();
+        LOGGER.info("Verifying token "+token);
         provider.authenticate(
         new JsonObject()
           .put("token", token)
           .put("options", new JsonObject()
-            .put("ignoreExpiration", true)))
-        .onSuccess(user -> System.out.println("User: " + user.principal())
-        )
+          .put("ignoreExpiration", true)))
+        .onSuccess(user -> { 
+            LOGGER.info("User: " + user.principal());
+            resultHandler.handle(Future.succeededFuture(user.principal())); 
+        })
         .onFailure(err -> {
-          //
+            resultHandler.handle(Future.failedFuture("error"));
         });
-        return true;
+        
     }
 }

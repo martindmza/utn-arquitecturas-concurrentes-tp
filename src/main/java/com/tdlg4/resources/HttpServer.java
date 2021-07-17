@@ -24,6 +24,9 @@ import java.util.HashSet;
 import java.util.Set;
 import io.vertx.core.json.Json;
 import com.tdlg4.services.Authenticator;
+import io.vertx.core.Handler;
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpServerRequest;
 
 /**
  *
@@ -32,15 +35,16 @@ import com.tdlg4.services.Authenticator;
 public class HttpServer extends AbstractVerticle{
     String sHtml="";
     private static final Logger LOGGER = LoggerFactory.getLogger(HttpServer.class);
+    private static final String API_PATH_MEM = "app/mem";
     private static final String API_PATH = "app";
     
     /** Declaración de las rutas paths */
-    private static final String API_POST = String.format("/%s", API_PATH);
-    private static final String API_GET_MEM = String.format("/%s/:id", API_PATH);
-    private static final String API_POST_MEM = String.format("/%s", API_PATH);
-    private static final String API_PUT_MEM = String.format("/%s", API_PATH);
+    //private static final String API_POST = String.format("/%s", API_PATH);
+    private static final String API_GET_MEM = String.format("/%s/:id", API_PATH_MEM);
+    private static final String API_POST_MEM = String.format("/%s", API_PATH_MEM);
+    private static final String API_PUT_MEM = String.format("/%s", API_PATH_MEM);
     private static final String API_POST_AUTH = String.format("/%s/login", API_PATH);
-
+    private static final String API_POST_AUTH_VALIDATE = String.format("/%s/validate", API_PATH);
     
     public JsonObject configJson= new JsonObject();
 
@@ -72,10 +76,11 @@ public class HttpServer extends AbstractVerticle{
         router.route().handler(BodyHandler.create());
         
         /* Rutas */
-        router.post(API_POST).handler(this::apiPost);
+        //router.post(API_POST).handler(this::apiPost);
         router.get(API_GET_MEM).handler(this::apiGetMem);
         router.post(API_POST_MEM).handler(this::apiPostMem);
         router.post(API_POST_AUTH).handler(this::apiPostAuth);
+        router.post(API_POST_AUTH_VALIDATE).handler(this::apiPostAuthValidate);
        //router.put(API_PUT_MEM).handler(this::apiPutMem);
         
         /* INFO del Servicio */
@@ -137,7 +142,7 @@ public class HttpServer extends AbstractVerticle{
     private void apiPostAuth(RoutingContext context) {
         
         try {
-            //String token=context.request().getHeader("Authenticator");
+            
             JsonObject request=new JsonObject (context.getBodyAsString());
             LOGGER.info("request recv login: "+ request.toString());   
             String token=auth.generateToken(request.getString("user"), request.getString("password"));
@@ -145,12 +150,12 @@ public class HttpServer extends AbstractVerticle{
             if(!token.isEmpty())
             {
                 
-                resp.put("result", 0);
+                resp.put("result", true);
                 resp.put("token", token);
                 context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(resp));
             }
             else{
-                resp.put("result", 0);
+                resp.put("result", false);
                 context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(resp));
         
             }
@@ -186,11 +191,45 @@ public class HttpServer extends AbstractVerticle{
         }
     }
     
-    private void apiPost (RoutingContext context) {
-        /* Parseamos a nuesto objeto de entrada */
-        JsonObject request=new JsonObject (context.getBodyAsString());
-        LOGGER.info("request recv: "+ request.toString());     
-        context.response().setStatusCode(200).putHeader("content-type", "application/json").end("OK");
+    private void apiPostAuthValidate (RoutingContext context) {
+        HttpServerRequest request = context.request();
+        String authorization = request.headers().get(HttpHeaders.AUTHORIZATION);
+        LOGGER.info("request header: "+ authorization);
+        String token;
+        String scheme;
+
+        try {
+                String[] parts = authorization.split(" ");
+                scheme = parts[0];
+                LOGGER.info("scheme: "+ scheme);
+                token = parts[1];
+                LOGGER.info("token: "+ token);
+        } catch (ArrayIndexOutOfBoundsException e) {
+                context.fail(401);
+                return;
+        } catch (IllegalArgumentException | NullPointerException e) {
+                // IllegalArgumentException includes PatternSyntaxException
+                context.fail(e);
+                return;
+        }
+
+        if (scheme.equalsIgnoreCase("bearer")) {
+            LOGGER.info("Entro en if scheme");
+            auth.verifyToken(token, handler -> {
+                if (handler.succeeded()) {
+                    JsonObject respAuth=handler.result();
+                    context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(respAuth));
+                }
+                else {
+                    context.fail(401);
+                }
+            });
+
+        } else {
+            context.fail(401);
+        }
+        
+        
     }
     
     
