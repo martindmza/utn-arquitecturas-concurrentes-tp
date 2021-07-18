@@ -118,8 +118,8 @@ public class Hazelcast extends AbstractVerticle implements Handler<Message<JsonO
                 if (resGet.succeeded()) {
                     LOGGER.info(String.format("Get context OK"));
                     LOGGER.info(resGet.result());
-                    JsonObject list=resGet.result();
-                    var arr=list.getJsonArray("task_ids");
+                    //JsonObject list=resGet.result();
+                    //var arr=list.getJsonArray("task_ids");
                     /*
                     sds.GetAsyncArrayContextJson("vertx.task", arr, resGetTask -> {
                         if (resGet.succeeded()) {
@@ -135,8 +135,9 @@ public class Hazelcast extends AbstractVerticle implements Handler<Message<JsonO
                         }
                     });
                     */
-                    int size=arr.size();
-                    getTaskInOrder(event,list,new JsonArray(),arr,0,size);
+                    //int size=arr.size();
+                    //getTaskInOrder(event,list,new JsonArray(),arr,0,size);
+                    event.reply(resGet.result());
                 }else {
                     LOGGER.info(String.format("GET context list Error 2"));
                     event.fail(0, "error");
@@ -183,7 +184,13 @@ public class Hazelcast extends AbstractVerticle implements Handler<Message<JsonO
                             LOGGER.info(resGet.result());
                             JsonObject list=resGet.result();
                             var arr=list.getJsonArray("task_ids");
-                            arr.add(data.getString("id"));
+                            LOGGER.info("Id task: "+ data.getString("id"));
+                            boolean existId = arr.stream().anyMatch(i -> i.equals(data.getString("id")));
+                            LOGGER.info("Id task exist: "+ existId);
+                            if(!existId) {
+                            	
+                            	arr.add(data.getString("id"));
+                            }
                             LOGGER.info(arr);
                             list.remove("task_ids");
                             list.put("task_ids", arr);
