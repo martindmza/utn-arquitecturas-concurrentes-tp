@@ -70,7 +70,29 @@ public class Hazelcast extends AbstractVerticle implements Handler<Message<JsonO
           }
         });
     }
-    
+
+    void getTaskInOrder(Message<JsonObject> event,JsonObject result,JsonArray listResult,JsonArray ids,int ind,int size){
+        String taskId=Integer.toString(ids.getInteger(ind));
+        sds.GetAsyncContextJson("vertx.task", taskId, resGet -> {
+            if (resGet.succeeded()) {
+                LOGGER.info(String.format("Get task "+taskId+" OK"));
+                LOGGER.info(resGet.result());
+                
+                listResult.add(resGet.result());
+                //ind++;
+                if(ind+1==size){
+                    result.put("tasks",listResult);
+                    event.reply(result);
+                }else{
+                    getTaskInOrder(event,result,listResult,ids,ind+1,size);
+                }                    
+            }else {
+                LOGGER.info(String.format("Save context Error"));
+                event.fail(0, "error");
+            }
+        });
+    }    
+
     @Override
     public void handle(Message<JsonObject> event) {
         JsonObject request = event.body();
@@ -98,6 +120,7 @@ public class Hazelcast extends AbstractVerticle implements Handler<Message<JsonO
                     LOGGER.info(resGet.result());
                     JsonObject list=resGet.result();
                     var arr=list.getJsonArray("task_ids");
+                    /*
                     sds.GetAsyncArrayContextJson("vertx.task", arr, resGetTask -> {
                         if (resGet.succeeded()) {
                             LOGGER.info("resGetTask: "+resGetTask.result());
@@ -111,6 +134,9 @@ public class Hazelcast extends AbstractVerticle implements Handler<Message<JsonO
                             event.fail(0, "error");
                         }
                     });
+                    */
+                    int size=arr.size();
+                    getTaskInOrder(event,list,new JsonArray(),arr,0,size);
                 }else {
                     LOGGER.info(String.format("GET context list Error 2"));
                     event.fail(0, "error");
