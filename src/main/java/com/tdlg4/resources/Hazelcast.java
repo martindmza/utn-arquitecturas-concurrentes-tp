@@ -71,34 +71,16 @@ public class Hazelcast extends AbstractVerticle implements Handler<Message<JsonO
         });
     }
 
-    void getTaskInOrder(Message<JsonObject> event,JsonObject result,JsonArray listResult,JsonArray ids,int ind,int size){
-        String taskId=Integer.toString(ids.getInteger(ind));
-        sds.GetAsyncContextJson("vertx.task", taskId, resGet -> {
-            if (resGet.succeeded()) {
-                LOGGER.info(String.format("Get task "+taskId+" OK"));
-                LOGGER.info(resGet.result());
-                
-                listResult.add(resGet.result());
-                //ind++;
-                if(ind+1==size){
-                    result.put("tasks",listResult);
-                    event.reply(result);
-                }else{
-                    getTaskInOrder(event,result,listResult,ids,ind+1,size);
-                }                    
-            }else {
-                LOGGER.info(String.format("Save context Error"));
-                event.fail(0, "error");
-            }
-        });
-    }    
+ 
 
     @Override
     public void handle(Message<JsonObject> event) {
         JsonObject request = event.body();
         JsonObject data=request.getJsonObject("data");
-        if ((request.getString("action")).equals("saveList"))
-        {            //"__vertx.haInfo"
+        String action=request.getString("action");
+        switch (action) {
+        case "saveList": 
+            //"__vertx.haInfo"
             sds.SaveAsyncContextJson("vertx.list", data.getString("id"), data, resSave -> {
                 if (resSave.succeeded()) {
                     LOGGER.info(String.format("Save context OK"));
@@ -108,51 +90,27 @@ public class Hazelcast extends AbstractVerticle implements Handler<Message<JsonO
                     event.reply(Json.encode("error"));
                 }
             });
-        }
-        else if ((request.getString("action")).equals("get"))
-        {
-            JsonObject resp=new JsonObject();
+        break;
+        case "get":
             try{
-                
             sds.GetAsyncContextJson("vertx.list", request.getString("id"), resGet -> {
                 if (resGet.succeeded()) {
                     LOGGER.info(String.format("Get context OK"));
                     LOGGER.info(resGet.result());
-                    //JsonObject list=resGet.result();
-                    //var arr=list.getJsonArray("task_ids");
-                    /*
-                    sds.GetAsyncArrayContextJson("vertx.task", arr, resGetTask -> {
-                        if (resGet.succeeded()) {
-                            LOGGER.info("resGetTask: "+resGetTask.result());
-                            list.put("tasks", resGetTask.result());
-                            LOGGER.info("lista final "+ list);
-                            event.reply(list);
-                        }
-                        else
-                        {
-                            LOGGER.info(String.format("Get context list Error 1"));
-                            event.fail(0, "error");
-                        }
-                    });
-                    */
-                    //int size=arr.size();
-                    //getTaskInOrder(event,list,new JsonArray(),arr,0,size);
                     event.reply(resGet.result());
                 }else {
-                    LOGGER.info(String.format("GET context list Error 2"));
+                    LOGGER.info(String.format("GET context list Error"));
                     event.fail(0, "error");
                 }
             });
             }
             catch(Exception ex)
             {
-                LOGGER.info(String.format("Save context Error"));
+                LOGGER.info(String.format("Get context Error"));
                 event.fail(0, "error");
             }
-        }
-        else if ((request.getString("action")).equals("getTask"))
-        {
-            JsonObject resp=new JsonObject();
+        break;
+        case "getTask":
             try{
                 
             sds.GetAsyncContextJson("vertx.task", request.getString("id"), resGet -> {
@@ -162,25 +120,24 @@ public class Hazelcast extends AbstractVerticle implements Handler<Message<JsonO
                     event.reply(resGet.result());
                                     
                 }else {
-                    LOGGER.info(String.format("Save context Error"));
+                    LOGGER.info(String.format("Get context Error"));
                     event.fail(0, "error");
                 }
             });
             }
             catch(Exception ex)
             {
-                LOGGER.info(String.format("Save context Error"));
+                LOGGER.info(String.format("Get context Error"));
                 event.fail(0, "error");
             }
-        }
-        else if((request.getString("action")).equals("saveTask"))
-        {
+        break;
+        case "saveTask":
             sds.SaveAsyncContextJson("vertx.task", data.getString("id"), data, resSaveTask -> {
                 if (resSaveTask.succeeded()) {
                     LOGGER.info(String.format("Save context task OK"));
                     sds.GetAsyncContextJson("vertx.list", data.getString("list"), resGet -> {
                         if (resGet.succeeded()) {
-                            LOGGER.info(String.format("Get context OK"));
+                            LOGGER.info(String.format("Get context list OK"));
                             LOGGER.info(resGet.result());
                             JsonObject list=resGet.result();
                             var arr=list.getJsonArray("task_ids");
@@ -188,7 +145,6 @@ public class Hazelcast extends AbstractVerticle implements Handler<Message<JsonO
                             boolean existId = arr.stream().anyMatch(i -> i.equals(data.getString("id")));
                             LOGGER.info("Id task exist: "+ existId);
                             if(!existId) {
-                            	
                             	arr.add(data.getString("id"));
                             }
                             LOGGER.info(arr);
@@ -214,7 +170,82 @@ public class Hazelcast extends AbstractVerticle implements Handler<Message<JsonO
                 }
             });
             
+        break;
+        case "delList":
+            LOGGER.info("case delList");
+            sds.GetAsyncContextJson("vertx.list", request.getString("id"), resGet -> {
+                if (resGet.succeeded()) {
+                    JsonObject list=resGet.result();
+                    var arr=list.getJsonArray("task_ids");
+                    arr.forEach(m -> {
+                        sds.RemoveAsyncContextJson("vertx.task", m.toString(), resultHandler ->{ 
+                            if (resultHandler.succeeded()) {
+                                LOGGER.info("Del task id:"+m.toString());
+                            }
+                        });
+                    });
+                }
+            });
+            sds.RemoveAsyncContextJson("vertx.list", request.getString("id"), resDelList -> {
+                JsonObject resp=new JsonObject();
+                if (resDelList.succeeded()) {
+                    resp.put("result", true);   
+                }
+                else
+                {
+                    resp.put("result", false);
+                }
+                event.reply(resp);
+            });
+            
+            break;
+        case "delTask":
+            JsonObject resp=new JsonObject();
+            sds.GetAsyncContextJson("vertx.task", request.getString("id"), resGet -> {
+                if (resGet.succeeded()) {
+                    LOGGER.info(String.format("Get task context OK"));
+                    LOGGER.info(resGet.result());
+                    JsonObject jTask = resGet.result();
+                    var idList=jTask.getString("list");
+                    sds.GetAsyncContextJson("vertx.list", idList, resGetL -> {
+                        if (resGetL.succeeded()) {
+                            LOGGER.info(String.format("Get context list OK"));
+                            LOGGER.info(resGetL.result());
+                            JsonObject list=resGetL.result();
+                            list.getJsonArray("task_ids").remove(request.getString("id"));
+                            sds.SaveAsyncContextJson("vertx.list", idList, list, resSaveList -> {
+                                if (resSaveList.succeeded()) {
+                                    LOGGER.info(String.format("Save task context OK"));
+                                    sds.RemoveAsyncContextJson("vertx.task", request.getString("id"), resDelTask -> {
+                                        if (resDelTask.succeeded()) {
+                                            resp.put("result", true); 
+                                        }
+                                        else
+                                        {
+                                            resp.put("result", false);
+                                        }
+                                        event.reply(resp);
+                                    });
+                                }else {
+                                    LOGGER.info(String.format("Del task context Error"));
+                                    event.fail(0, "error");
+                                }
+                            });
+                        }else {
+                            LOGGER.info(String.format("Del task Error"));
+                            event.fail(0, "error");
+                        }
+                    });
+                }
+                else
+                {
+                    LOGGER.info(String.format("del task Error"));
+                            event.fail(0, "error");
+                }
+            });       
+            break;
         }
     }
+    
 
 }
