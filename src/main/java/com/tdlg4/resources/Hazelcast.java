@@ -15,6 +15,7 @@ import io.vertx.spi.cluster.hazelcast.ConfigUtil;
 import com.hazelcast.config.Config;
 import com.hazelcast.core.HazelcastInstance;
 import com.tdlg4.services.SharedDataService;
+import com.tdlg4.services.Authenticator;
 import io.vertx.core.eventbus.EventBusOptions;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
@@ -24,6 +25,8 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.shareddata.AsyncMap;
 import io.vertx.core.shareddata.SharedData;
 import io.vertx.core.eventbus.EventBus;
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.Json;
@@ -44,6 +47,7 @@ public class Hazelcast extends AbstractVerticle implements Handler<Message<JsonO
 
     VertxOptions options = new VertxOptions().setClusterManager(mgr);
     SharedDataService sds;
+    Authenticator auth;
     
     @Override
     public void start(Promise<Void> startPromise) throws Exception {
@@ -58,6 +62,7 @@ public class Hazelcast extends AbstractVerticle implements Handler<Message<JsonO
             
             LOGGER.info(String.format("Service  %s started.", SERVICE_ADDRESS));
             sds = new SharedDataService();
+            auth= new Authenticator();
             if (vertx.isClustered()) {
                 LOGGER.info(String.format("Es un cluster"));
             }
@@ -243,6 +248,30 @@ public class Hazelcast extends AbstractVerticle implements Handler<Message<JsonO
                             event.fail(0, "error");
                 }
             });       
+            break;
+        case "validate":
+            auth.verifyToken(request.getString("token"), handler -> {
+                if (handler.succeeded()) {
+                    JsonObject respAuth=handler.result();
+                    LOGGER.info("respuesta login token: "+handler.result());
+                    event.reply(respAuth);
+                }
+                else {
+                    event.fail(0, "error");
+                }
+            });
+            break;
+        case "login":
+            String token=auth.generateToken(request.getString("user"), request.getString("password"));
+            if (token.isEmpty())
+                event.fail(0, "error");
+            else
+            {
+                JsonObject respToken=new JsonObject();
+                respToken.put("result", true);
+                respToken.put("token", token);
+                event.reply(respToken);
+            }
             break;
         }
     }

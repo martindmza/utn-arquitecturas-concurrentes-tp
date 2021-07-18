@@ -42,15 +42,17 @@ public class Authenticator {
         {
             LOGGER.info("user: "+username + " password:"+password);
             String token="";
-            if ("usuario".equals(username) && "tdlg4".equals(password) ||
-                "usuario2".equals(username) && "tdlg4".equals(password)) {
-                token = provider.generateToken(new JsonObject().put("admin", username));
-                
-            }
-            else if ("usuario3".equals(username) && "tdlg4".equals(password) ||
+            if ("usuario1".equals(username) && "tdlg4".equals(password) ||
+                "usuario2".equals(username) && "tdlg4".equals(password) ||
+                "usuario3".equals(username) && "tdlg4".equals(password) ||
                 "usuario4".equals(username) && "tdlg4".equals(password)) {
                 token = provider.generateToken(new JsonObject().put("user", username));
+                
             }
+            /*else if ("usuario3".equals(username) && "tdlg4".equals(password) ||
+                "usuario4".equals(username) && "tdlg4".equals(password)) {
+                token = provider.generateToken(new JsonObject().put("user", username));
+            }*/
             return token;
         }
         catch(Exception ex)
