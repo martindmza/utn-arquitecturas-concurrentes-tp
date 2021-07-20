@@ -150,11 +150,11 @@ public class Hazelcast extends AbstractVerticle implements Handler<Message<JsonO
                             LOGGER.info(resGet.result());
                             JsonObject list=resGet.result();
                             var arr=list.getJsonArray("task_ids");
-                            LOGGER.info("Id task: "+ data.getString("id"));
-                            boolean existId = arr.stream().anyMatch(i -> i.equals(data.getString("id")));
+                            LOGGER.info("Id task: "+ data.getInteger("id"));
+                            boolean existId = arr.stream().anyMatch(i -> i.equals(data.getInteger("id")));
                             LOGGER.info("Id task exist: "+ existId);
                             if(!existId) {
-                            	arr.add(data.getString("id"));
+                            	arr.add(data.getInteger("id"));
                             }
                             LOGGER.info(arr);
                             list.remove("task_ids");
