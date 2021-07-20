@@ -31,6 +31,7 @@ import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
+import static java.lang.Integer.parseInt;
 
 /**
  *
@@ -48,6 +49,7 @@ public class Hazelcast extends AbstractVerticle implements Handler<Message<JsonO
     VertxOptions options = new VertxOptions().setClusterManager(mgr);
     SharedDataService sds;
     Authenticator auth;
+   
     
     @Override
     public void start(Promise<Void> startPromise) throws Exception {
@@ -86,7 +88,8 @@ public class Hazelcast extends AbstractVerticle implements Handler<Message<JsonO
         switch (action) {
         case "saveList": 
             //"__vertx.haInfo"
-            sds.SaveAsyncContextJson("vertx.list", data.getString("id"), data, resSave -> {
+            
+            sds.SaveAsyncContextJson("vertx.list", data.getInteger("id"), data, resSave -> {
                 if (resSave.succeeded()) {
                     LOGGER.info(String.format("Save context OK"));
                     event.reply(Json.encode("OK"));
@@ -98,7 +101,8 @@ public class Hazelcast extends AbstractVerticle implements Handler<Message<JsonO
         break;
         case "get":
             try{
-            sds.GetAsyncContextJson("vertx.list", request.getString("id"), resGet -> {
+                LOGGER.info("key id"+request.getInteger("id"));
+            sds.GetAsyncContextJson("vertx.list", request.getInteger("id"), resGet -> {
                 if (resGet.succeeded()) {
                     LOGGER.info(String.format("Get context OK"));
                     LOGGER.info(resGet.result());
@@ -118,7 +122,7 @@ public class Hazelcast extends AbstractVerticle implements Handler<Message<JsonO
         case "getTask":
             try{
                 
-            sds.GetAsyncContextJson("vertx.task", request.getString("id"), resGet -> {
+            sds.GetAsyncContextJson("vertx.task", request.getInteger("id"), resGet -> {
                 if (resGet.succeeded()) {
                     LOGGER.info(String.format("Get task context OK"));
                     LOGGER.info(resGet.result());
@@ -137,10 +141,10 @@ public class Hazelcast extends AbstractVerticle implements Handler<Message<JsonO
             }
         break;
         case "saveTask":
-            sds.SaveAsyncContextJson("vertx.task", data.getString("id"), data, resSaveTask -> {
+            sds.SaveAsyncContextJson("vertx.task", data.getInteger("id"), data, resSaveTask -> {
                 if (resSaveTask.succeeded()) {
                     LOGGER.info(String.format("Save context task OK"));
-                    sds.GetAsyncContextJson("vertx.list", data.getString("list"), resGet -> {
+                    sds.GetAsyncContextJson("vertx.list", data.getInteger("list"), resGet -> {
                         if (resGet.succeeded()) {
                             LOGGER.info(String.format("Get context list OK"));
                             LOGGER.info(resGet.result());
@@ -155,7 +159,7 @@ public class Hazelcast extends AbstractVerticle implements Handler<Message<JsonO
                             LOGGER.info(arr);
                             list.remove("task_ids");
                             list.put("task_ids", arr);
-                            sds.SaveAsyncContextJson("vertx.list", data.getString("list"), list, resSaveList -> {
+                            sds.SaveAsyncContextJson("vertx.list", data.getInteger("list"), list, resSaveList -> {
                                 if (resSaveList.succeeded()) {
                                     LOGGER.info(String.format("Save task context OK"));
                                     event.reply(Json.encode("OK"));
@@ -178,12 +182,12 @@ public class Hazelcast extends AbstractVerticle implements Handler<Message<JsonO
         break;
         case "delList":
             LOGGER.info("case delList");
-            sds.GetAsyncContextJson("vertx.list", request.getString("id"), resGet -> {
+            sds.GetAsyncContextJson("vertx.list", request.getInteger("id"), resGet -> {
                 if (resGet.succeeded()) {
                     JsonObject list=resGet.result();
                     var arr=list.getJsonArray("task_ids");
                     arr.forEach(m -> {
-                        sds.RemoveAsyncContextJson("vertx.task", m.toString(), resultHandler ->{ 
+                        sds.RemoveAsyncContextJson("vertx.task", parseInt(m.toString()), resultHandler ->{ 
                             if (resultHandler.succeeded()) {
                                 LOGGER.info("Del task id:"+m.toString());
                             }
@@ -191,7 +195,7 @@ public class Hazelcast extends AbstractVerticle implements Handler<Message<JsonO
                     });
                 }
             });
-            sds.RemoveAsyncContextJson("vertx.list", request.getString("id"), resDelList -> {
+            sds.RemoveAsyncContextJson("vertx.list", request.getInteger("id"), resDelList -> {
                 JsonObject resp=new JsonObject();
                 if (resDelList.succeeded()) {
                     resp.put("result", true);   
@@ -206,12 +210,12 @@ public class Hazelcast extends AbstractVerticle implements Handler<Message<JsonO
             break;
         case "delTask":
             JsonObject resp=new JsonObject();
-            sds.GetAsyncContextJson("vertx.task", request.getString("id"), resGet -> {
+            sds.GetAsyncContextJson("vertx.task", request.getInteger("id"), resGet -> {
                 if (resGet.succeeded()) {
                     LOGGER.info(String.format("Get task context OK"));
                     LOGGER.info(resGet.result());
                     JsonObject jTask = resGet.result();
-                    var idList=jTask.getString("list");
+                    var idList=jTask.getInteger("list");
                     sds.GetAsyncContextJson("vertx.list", idList, resGetL -> {
                         if (resGetL.succeeded()) {
                             LOGGER.info(String.format("Get context list OK"));
@@ -221,7 +225,7 @@ public class Hazelcast extends AbstractVerticle implements Handler<Message<JsonO
                             sds.SaveAsyncContextJson("vertx.list", idList, list, resSaveList -> {
                                 if (resSaveList.succeeded()) {
                                     LOGGER.info(String.format("Save task context OK"));
-                                    sds.RemoveAsyncContextJson("vertx.task", request.getString("id"), resDelTask -> {
+                                    sds.RemoveAsyncContextJson("vertx.task", request.getInteger("id"), resDelTask -> {
                                         if (resDelTask.succeeded()) {
                                             resp.put("result", true); 
                                         }
@@ -253,7 +257,6 @@ public class Hazelcast extends AbstractVerticle implements Handler<Message<JsonO
             auth.verifyToken(request.getString("token"), handler -> {
                 if (handler.succeeded()) {
                     JsonObject respAuth=handler.result();
-                    LOGGER.info("respuesta login token: "+handler.result());
                     event.reply(respAuth);
                 }
                 else {

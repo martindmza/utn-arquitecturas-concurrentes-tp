@@ -26,18 +26,18 @@ public class SharedDataService {
     private static final Logger LOGGER = LoggerFactory.getLogger(Hazelcast.class);
   
     /*Async*/
-    public void GetAsyncContextJson(String newMap, String key, Handler<AsyncResult<JsonObject>> resultHandler) {
+    public void GetAsyncContextJson(String newMap, Integer key, Handler<AsyncResult<JsonObject>> resultHandler) {
         SharedData sharedData = vertx.sharedData();
-
-        sharedData.<String, JsonObject>getClusterWideMap(newMap, res -> {
+        LOGGER.info("key get"+key);
+        sharedData.<Integer, JsonObject>getClusterWideMap(newMap, res -> {
             if (res.succeeded()) {
-                AsyncMap<String, JsonObject> map = res.result();
+                AsyncMap<Integer, JsonObject> map = res.result();
                 map.get(key, resGet -> {
                 if (resGet.succeeded()) {
-                   //LOGGER.info("existe "+key);
+                   LOGGER.info("existe "+key);
                   // Successfully got the value
                   JsonObject val = resGet.result();
-                  //LOGGER.info("val resultado getasync "+resGet.result());
+                  LOGGER.info("val resultado getasync "+resGet.result());
                   if(resGet.result()!=null)
                     resultHandler.handle(Future.succeededFuture(val));
                   else
@@ -56,11 +56,11 @@ public class SharedDataService {
         });
     }
 
-    public void SaveAsyncContextJson(String newMap, String key, JsonObject json, Handler<AsyncResult<JsonObject>> resultHandler) {
+    public void SaveAsyncContextJson(String newMap, Integer key, JsonObject json, Handler<AsyncResult<JsonObject>> resultHandler) {
         SharedData sharedData = vertx.sharedData();
-        sharedData.<String, JsonObject>getClusterWideMap(newMap, res -> {
+        sharedData.<Integer, JsonObject>getClusterWideMap(newMap, res -> {
             if (res.succeeded()) {
-                AsyncMap<String, JsonObject> map = res.result();
+                AsyncMap<Integer, JsonObject> map = res.result();
                 //map.putIfAbsent(key, json);
                 map.put(key, json);
                 resultHandler.handle(Future.succeededFuture());
@@ -71,11 +71,11 @@ public class SharedDataService {
     }
     
     
-    public void RemoveAsyncContextJson(String newMap, String key, Handler<AsyncResult<JsonObject>> resultHandler) {
+    public void RemoveAsyncContextJson(String newMap, Integer key, Handler<AsyncResult<JsonObject>> resultHandler) {
         SharedData sharedData = vertx.sharedData();
-        sharedData.<String, JsonObject>getClusterWideMap(newMap, res -> {
+        sharedData.<Integer, JsonObject>getClusterWideMap(newMap, res -> {
             if (res.succeeded()) {
-                AsyncMap<String, JsonObject> map = res.result();
+                AsyncMap<Integer, JsonObject> map = res.result();
                 map.remove(key);
                 resultHandler.handle(Future.succeededFuture());
             } else {

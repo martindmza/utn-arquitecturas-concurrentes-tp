@@ -24,9 +24,15 @@ import java.util.HashSet;
 import java.util.Set;
 import io.vertx.core.json.Json;
 import com.tdlg4.services.Authenticator;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
+import static java.lang.Integer.parseInt;
+import java.util.Date;
+import java.util.concurrent.ThreadLocalRandom;
+
 
 /**
  *
@@ -52,8 +58,13 @@ public class HttpServer extends AbstractVerticle{
 
     //Authenticator auth= new Authenticator();
     /*cambiar luego por configuración */
-    int port=7778;
+    int port=7777;
     String host="0.0.0.0";
+    int l=0;
+    
+    int min=1;
+    int max=1900800700;
+
     /**************************/
     
     
@@ -124,145 +135,280 @@ public class HttpServer extends AbstractVerticle{
     private void apiGetList(RoutingContext context) {
         LOGGER.info("METODO GET");
         JsonObject resp=new JsonObject();
-        try
-        {
-            String id = context.request().getParam("id");
-            LOGGER.info("id: " +id);
-            JsonObject json= new JsonObject();
-            json.put("action", "get");
-            json.put("id",id);
-            vertx.eventBus().request(Hazelcast.SERVICE_ADDRESS, json, handler -> {
-                if (handler.succeeded()) {
-                        //LOGGER.info("respuestaGet: "+ handler.result());
-                        context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode((JsonObject) handler.result().body()));
-                } else {
-                    LOGGER.info("respuestaGet Else");
-                    resp.put("result", false);
-                    context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(resp));
-                }
-            });
-        }
-        catch(Exception ex)
-        {
-            LOGGER.info("error catch "+ ex.getMessage());
-            resp.put("result", false);
-            resp.put("message", ex.getMessage());
-            context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(resp));
-        }
+        HttpServerRequest request = context.request();
+        AuthValidate(request, handlerAuth->{
+            if (handlerAuth.succeeded()) {
+                    var respHandler=(JsonObject)handlerAuth.result();
+                    LOGGER.info("Get List user: "+respHandler.getString("user"));       
+                    try
+                    {
+                        String id = context.request().getParam("id");
+                        LOGGER.info("id: " +id);
+                        JsonObject json= new JsonObject();
+                        json.put("action", "get");
+                        json.put("id",parseInt(id));
+                        vertx.eventBus().request(Hazelcast.SERVICE_ADDRESS, json, handler -> {
+                            if (handler.succeeded()) {
+                                    //LOGGER.info("respuestaGet: "+ handler.result());
+                                    context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode((JsonObject) handler.result().body()));
+                            } else {
+                                resp.put("result", false);
+                                context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(resp));
+                            }
+                        });
+                    }
+                    catch(Exception ex)
+                    {
+                        LOGGER.info("error catch "+ ex.getMessage());
+                        resp.put("result", false);
+                        resp.put("message", ex.getMessage());
+                        context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(resp));
+                    }
+            }
+            else
+            {
+                resp.put("result", false);
+                resp.put("message", "user is not authorized");
+                context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(resp));
+            }
+        });
         
     }
     
     private void apiGetTask(RoutingContext context) {
         LOGGER.info("METODO GET");
         JsonObject resp=new JsonObject();
-        try
-        {
-            String id = context.request().getParam("id");
-            LOGGER.info("id: " +id);
-            JsonObject json= new JsonObject();
-            json.put("action", "getTask");
-            json.put("id",id);
-            vertx.eventBus().request(Hazelcast.SERVICE_ADDRESS, json, handler -> {
-                if (handler.succeeded()) {
-                        context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode((JsonObject) handler.result().body()));
-                } else {
-                    resp.put("result", false);
-                    context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(resp));
-                }
-            });
-        }
-        catch(Exception ex)
-        {
-            resp.put("result", false);
-            resp.put("message", ex.getMessage());
-            context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(resp));
-        }
+        HttpServerRequest request = context.request();
+        AuthValidate(request, handlerAuth->{
+            if (handlerAuth.succeeded()) {
+                    var respHandler=(JsonObject)handlerAuth.result();
+                    LOGGER.info("Get task user: "+respHandler.getString("user"));
+                    try
+                    {
+                        String id = context.request().getParam("id");
+                        LOGGER.info("id: " +id);
+                        JsonObject json= new JsonObject();
+                        json.put("action", "getTask");
+                        json.put("id",parseInt(id));
+                        vertx.eventBus().request(Hazelcast.SERVICE_ADDRESS, json, handler -> {
+                            if (handler.succeeded()) {
+                                    context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode((JsonObject) handler.result().body()));
+                            } else {
+                                resp.put("result", false);
+                                context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(resp));
+                            }
+                        });
+                    }
+                    catch(Exception ex)
+                    {
+                        resp.put("result", false);
+                        resp.put("message", ex.getMessage());
+                        context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(resp));
+                    }
+            }
+            else
+            {
+                resp.put("result", false);
+                resp.put("message", "user is not authorized");
+                context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(resp));
+            }
+        });
         
     }
     
    
     private void apiPostList (RoutingContext context) {
         /* Test para guardar objeto en memoria local */
+        LOGGER.info("Request save list: " + context.getBodyAsString());
         JsonObject jList=new JsonObject();
-        try{
-            LOGGER.info("post request save list: {0}" + context.getBodyAsString());
-            jList.put("action", "saveList");
-            jList.put("data", new JsonObject (context.getBodyAsString()));
-            vertx.eventBus().request(Hazelcast.SERVICE_ADDRESS, jList, handler -> {
-                if (handler.succeeded()) {
-                    jList.put("result", true);
-                    context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(jList));
-                } else {
-                    jList.put("result", false);
-                    context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(jList));
+        HttpServerRequest request = context.request();
+        AuthValidate(request, handlerAuth->{
+            int id;
+            if (handlerAuth.succeeded()) {
+                
+                try{
+                    var respHandler=(JsonObject)handlerAuth.result();
+                    var user=respHandler.getString("user");
+                    LOGGER.info("Save List user: "+user);                    
+                    jList.put("action", "saveList");
+                    JsonObject jListNew=new JsonObject (context.getBodyAsString());
+                    if (jListNew.getInteger("id")==null){
+                        id = ThreadLocalRandom.current().nextInt(min, max + 1);
+                        LOGGER.info("New List id:" +id);
+                        jListNew.put("id", id);
+
+                    }
+                    else{
+                        id = jListNew.getInteger("id");
+                        LOGGER.info("List id:" +id);
+                    }
+                    jListNew.put("last_user", user);
+                    jListNew.put("last_update", new Date().toString());
+                    //jList.put("data", new JsonObject (context.getBodyAsString()));
+                    jList.put("data", jListNew);
+                    vertx.eventBus().request(Hazelcast.SERVICE_ADDRESS, jList, handler -> {
+                        if (handler.succeeded()) {
+                            jList.put("result", true);
+                            context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(jList));
+                        } else {
+                            jList.put("result", false);
+                            context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(jList));
+                        }
+                    });
                 }
-            });
-        }
-        catch(Exception ex)
-        {
-            jList.put("result", false);
-            jList.put("message", ex.getMessage());
-            context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(ex.getMessage()));
-        }
+                catch(Exception ex)
+                {
+                    jList.put("result", false);
+                    jList.put("message", ex.getMessage());
+                    context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(ex.getMessage()));
+                }
+            }
+            else
+            {
+                jList.put("result", false);
+                jList.put("message", "user is not authorized");
+                context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(jList));
+            }
+        });
     }
     
     private void apiDelList (RoutingContext context) {
-         LOGGER.info("METODO DEL LIST");
+        LOGGER.info("METODO DEL LIST");
         JsonObject resp=new JsonObject();
-        try
-        {
-            String id = context.request().getParam("id");
-            LOGGER.info("id: " +id);
-            JsonObject json= new JsonObject();
-            json.put("action", "delList");
-            json.put("id",id);
-            vertx.eventBus().request(Hazelcast.SERVICE_ADDRESS, json, handler -> {
-                if (handler.succeeded()) {
-                        context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode((JsonObject) handler.result().body()));
-                } else {
+        HttpServerRequest request = context.request();
+        AuthValidate(request, handlerAuth->{
+            if (handlerAuth.succeeded()) {               
+                try
+                {
+                    var respHandler=(JsonObject)handlerAuth.result();
+                    var user=respHandler.getString("user");
+                    LOGGER.info("Del List user: "+user);     
+                    String id = context.request().getParam("id");
+                    LOGGER.info("id: " +id);
+                    JsonObject json= new JsonObject();
+                    json.put("action", "delList");
+                    json.put("id",id);
+                    vertx.eventBus().request(Hazelcast.SERVICE_ADDRESS, json, handler -> {
+                        if (handler.succeeded()) {
+                                context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode((JsonObject) handler.result().body()));
+                        } else {
+                            resp.put("result", false);
+                            context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(resp));
+                        }
+                    });
+                }
+                catch(Exception ex)
+                {
                     resp.put("result", false);
+                    resp.put("message", ex.getMessage());
                     context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(resp));
                 }
-            });
-        }
-        catch(Exception ex)
-        {
-            resp.put("result", false);
-            resp.put("message", ex.getMessage());
-            context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(resp));
-        }
-         
+            }
+            else
+            {
+                resp.put("result", false);
+                resp.put("message", "user is not authorized");
+                context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(resp));
+            }
+        });
      }
     
     private void apiDelTask (RoutingContext context) {
-         LOGGER.info("METODO DEL TASK");
+        LOGGER.info("METODO DEL TASK");
         JsonObject resp=new JsonObject();
-        try
-        {
-            String id = context.request().getParam("id");
-            LOGGER.info("id: " +id);
-            JsonObject json= new JsonObject();
-            json.put("action", "delTask");
-            json.put("id",id);
+        HttpServerRequest request = context.request();
+        AuthValidate(request, handlerAuth->{
+            if (handlerAuth.succeeded()) {               
+                try
+                {
+                    var respHandler=(JsonObject)handlerAuth.result();
+                    var user=respHandler.getString("user");
+                    LOGGER.info("Del Task user: "+user);     
+
+                    String id = context.request().getParam("id");
+                    LOGGER.info("id: " +id);
+                    JsonObject json= new JsonObject();
+                    json.put("action", "delTask");
+                    json.put("id",id);
+                    vertx.eventBus().request(Hazelcast.SERVICE_ADDRESS, json, handler -> {
+                        if (handler.succeeded()) {
+                                context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode((JsonObject) handler.result().body()));
+                        } else {
+                            resp.put("result", false);
+                            context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(resp));
+                        }
+                    });
+                }
+                catch(Exception ex)
+                {
+                    resp.put("result", false);
+                    resp.put("message", ex.getMessage());
+                    context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(resp));
+                }
+            }
+            else
+            {
+                resp.put("result", false);
+                resp.put("message", "user is not authorized");
+                context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(resp));
+            }
+        });
+     }
+    
+    public void AuthValidate(HttpServerRequest request,Handler<AsyncResult<JsonObject>> resultHandler){
+        JsonObject json=new JsonObject();
+        String authorization = request.headers().get(HttpHeaders.AUTHORIZATION);
+        LOGGER.info("request header: "+ authorization);
+        String token;
+        String scheme;
+        
+        try {
+                String[] parts = authorization.split(" ");
+                scheme = parts[0];
+                //LOGGER.info("scheme: "+ scheme);
+                token = parts[1];
+                //LOGGER.info("token: "+ token);
+        } catch (ArrayIndexOutOfBoundsException e) {
+                resultHandler.handle(Future.failedFuture("error"));
+                return;
+        } catch (IllegalArgumentException | NullPointerException e) {
+                // IllegalArgumentException includes PatternSyntaxException
+                resultHandler.handle(Future.failedFuture("error"));
+                return;
+        }
+        if (scheme.equalsIgnoreCase("bearer")) {
+            json.put("action", "validate");
+            json.put("token", token);
             vertx.eventBus().request(Hazelcast.SERVICE_ADDRESS, json, handler -> {
                 if (handler.succeeded()) {
-                        context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode((JsonObject) handler.result().body()));
+                    resultHandler.handle(Future.succeededFuture((JsonObject)handler.result().body()));
+                } else {
+                    resultHandler.handle(Future.failedFuture("error"));
+                }
+            });
+        }
+         else {
+            resultHandler.handle(Future.failedFuture("error"));
+        }
+    }
+    private void apiPostAuthValidate (RoutingContext context) {
+        JsonObject resp=new JsonObject();
+        HttpServerRequest request = context.request();
+        AuthValidate(request, handlerAuth->{
+            if (handlerAuth.succeeded()) {
+                    var respHandler=(JsonObject)handlerAuth.result();
+                    var user=respHandler.getString("user");
+                    resp.put("result", true);
+                    resp.put("user", user);
+                    context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(resp));
                 } else {
                     resp.put("result", false);
                     context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(resp));
                 }
-            });
-        }
-        catch(Exception ex)
-        {
-            resp.put("result", false);
-            resp.put("message", ex.getMessage());
-            context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(resp));
-        }
-         
-     }
+        });
+    }
     
-    private void apiPostAuthValidate (RoutingContext context) {
+    /*private void apiPostAuthValidate (RoutingContext context) {
         JsonObject json=new JsonObject();
         JsonObject resp=new JsonObject();
         HttpServerRequest request = context.request();
@@ -300,9 +446,9 @@ public class HttpServer extends AbstractVerticle{
         }
          else {
             context.fail(401);
-        }
-        
-    }
+        }      
+    }*/
+    
      private void apiPostAuth(RoutingContext context) {
         JsonObject resp=new JsonObject();
         try {
@@ -335,27 +481,58 @@ public class HttpServer extends AbstractVerticle{
     
     private void apiPostSaveTask (RoutingContext context) {
         /* Test para guardar objeto en memoria local */
+        
         JsonObject jList=new JsonObject();
-        try{
-            LOGGER.info("post request save task: {0}" + context.getBodyAsString());
-            jList.put("action", "saveTask");
-            jList.put("data", new JsonObject (context.getBodyAsString()));
-            vertx.eventBus().request(Hazelcast.SERVICE_ADDRESS, jList, handler -> {
-                if (handler.succeeded()) {
-                    jList.put("result", true);
-                    context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(jList));
-                } else {
-                    jList.put("result", false);
-                    context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(jList));
+        HttpServerRequest request = context.request();
+        AuthValidate(request, handlerAuth->{
+            int id;
+            if (handlerAuth.succeeded()) {
+                
+                try{
+                    var respHandler=(JsonObject)handlerAuth.result();
+                    var user=respHandler.getString("user");
+                    LOGGER.info("Save Task user: "+user);                    
+                    JsonObject jListNew=new JsonObject (context.getBodyAsString());
+                    if (jListNew.getInteger("id")==null){
+                        id = ThreadLocalRandom.current().nextInt(min, max + 1);
+                        LOGGER.info("New List id:" +id);
+                        jListNew.put("id", id);
+                        
+                    }
+                    else{
+                        id = jListNew.getInteger("id");
+                        LOGGER.info("List id:" +id);
+                    }
+                    jListNew.put("last_user", user);
+                    jListNew.put("last_update", new Date().toString());
+                    //jList.put("data", new JsonObject (context.getBodyAsString()));
+                    LOGGER.info("post request save task: {0}" + context.getBodyAsString());
+                    jList.put("action", "saveTask");
+                    jList.put("data", jListNew);
+                    vertx.eventBus().request(Hazelcast.SERVICE_ADDRESS, jList, handler -> {
+                        if (handler.succeeded()) {
+                            jList.put("result", true);
+                            context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(jList));
+                        } else {
+                            jList.put("result", false);
+                            context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(jList));
+                        }
+                    });
                 }
-            });
-        }
-        catch(Exception ex)
-        {
-            jList.put("result", false);
-            jList.put("message", ex.getMessage());
-            context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(ex.getMessage()));
-        }
+                catch(Exception ex)
+                {
+                    jList.put("result", false);
+                    jList.put("message", ex.getMessage());
+                    context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(ex.getMessage()));
+                }
+            }
+            else
+            {
+                jList.put("result", false);
+                jList.put("message", "user is not authorized");
+                context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(jList));
+            }
+        });
     }
     
     protected void enableCorsSupport(Router router) {

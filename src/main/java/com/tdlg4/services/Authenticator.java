@@ -63,7 +63,6 @@ public class Authenticator {
     }
     public void verifyToken(String token, Handler<AsyncResult<JsonObject>> resultHandler)
     {
-        JsonObject val = new JsonObject();
         LOGGER.info("Verifying token "+token);
         provider.authenticate(
         new JsonObject()
@@ -71,7 +70,7 @@ public class Authenticator {
           .put("options", new JsonObject()
           .put("ignoreExpiration", true)))
         .onSuccess(user -> { 
-            LOGGER.info("User: " + user.principal());
+            LOGGER.info("authorization: " + user.principal());
             resultHandler.handle(Future.succeededFuture(user.principal())); 
         })
         .onFailure(err -> {
