@@ -287,7 +287,7 @@ public class HttpServer extends AbstractVerticle{
                     var respHandler=(JsonObject)handlerAuth.result();
                     var user=respHandler.getString("user");
                     LOGGER.info("Del List user: "+user);     
-                    String id = context.request().getParam("id");
+                    int id = Integer.parseInt(context.request().getParam("id"));
                     LOGGER.info("id: " +id);
                     JsonObject json= new JsonObject();
                     json.put("action", "delList");
@@ -329,7 +329,7 @@ public class HttpServer extends AbstractVerticle{
                     var user=respHandler.getString("user");
                     LOGGER.info("Del Task user: "+user);     
 
-                    String id = context.request().getParam("id");
+                    int id = Integer.parseInt(context.request().getParam("id"));
                     LOGGER.info("id: " +id);
                     JsonObject json= new JsonObject();
                     json.put("action", "delTask");

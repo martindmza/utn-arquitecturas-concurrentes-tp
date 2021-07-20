@@ -240,7 +240,7 @@ public class Hazelcast extends AbstractVerticle implements Handler<Message<JsonO
                             LOGGER.info(String.format("Get context list OK"));
                             LOGGER.info(resGetL.result());
                             JsonObject list=resGetL.result();
-                            list.getJsonArray("task_ids").remove(request.getString("id"));
+                            list.getJsonArray("task_ids").remove(request.getInteger("id"));
                             sds.SaveAsyncContextJson("vertx.list", idList, list, resSaveList -> {
                                 if (resSaveList.succeeded()) {
                                     LOGGER.info(String.format("Save task context OK"));

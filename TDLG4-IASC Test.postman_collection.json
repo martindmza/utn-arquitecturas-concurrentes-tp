@@ -1,0 +1,339 @@
+{
+	"info": {
+		"_postman_id": "a140bedb-fc04-415a-adfd-c8064dd5ee47",
+		"name": "TDLG4-IASC Test",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Local",
+			"item": [
+				{
+					"name": "/ port1",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "{{token}}",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"url": {
+							"raw": "{{baseURL2}}{{port1}}",
+							"host": [
+								"{{baseURL2}}{{port1}}"
+							]
+						},
+						"description": "Posible healthCheck"
+					},
+					"response": []
+				},
+				{
+					"name": "/app/login/",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = JSON.parse(responseBody);\r",
+									"pm.collectionVariables.set(\"token\", \"Bearer \" + jsonData.token);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"user\": \"usuario1\",\r\n    \"password\": \"tdlg4\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL2}}{{port1}}/app/login",
+							"host": [
+								"{{baseURL2}}{{port1}}"
+							],
+							"path": [
+								"app",
+								"login"
+							]
+						},
+						"description": "Método que permite la creación de una lista vacía"
+					},
+					"response": []
+				},
+				{
+					"name": "/app/list",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "{{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"id\": 1,\r\n    \"listName\": \"lista_1\",\r\n    \"task_ids\": []\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL2}}{{port1}}/app/list",
+							"host": [
+								"{{baseURL2}}{{port1}}"
+							],
+							"path": [
+								"app",
+								"list"
+							]
+						},
+						"description": "Método que permite la creación de una lista vacía"
+					},
+					"response": []
+				},
+				{
+					"name": "/app/task",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "{{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n   \"list\":1,\r\n   \"id\": 1,\r\n   \"name\": \"Tarea 20\",\r\n   \"order\": 1,\r\n   \"status\": \"OK\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL2}}{{port1}}/app/task",
+							"host": [
+								"{{baseURL2}}{{port1}}"
+							],
+							"path": [
+								"app",
+								"task"
+							]
+						},
+						"description": "Método que permite la creación de una tarea en una lista."
+					},
+					"response": []
+				},
+				{
+					"name": "/app/list/:id",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "{{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseURL2}}{{port1}}/app/list/:id",
+							"host": [
+								"{{baseURL2}}{{port1}}"
+							],
+							"path": [
+								"app",
+								"list",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						},
+						"description": "Método que permite consultar una lista de tareas"
+					},
+					"response": []
+				},
+				{
+					"name": "/app/lists",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "{{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseURL2}}{{port1}}/app/lists",
+							"host": [
+								"{{baseURL2}}{{port1}}"
+							],
+							"path": [
+								"app",
+								"lists"
+							]
+						},
+						"description": "Método que permite consultar una lista de tareas"
+					},
+					"response": []
+				},
+				{
+					"name": "/app/task/:id",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "{{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseURL2}}{{port1}}/app/task/:id",
+							"host": [
+								"{{baseURL2}}{{port1}}"
+							],
+							"path": [
+								"app",
+								"task",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "19"
+								}
+							]
+						},
+						"description": "Método que permite consultar una tarea del  sharedData de tareas"
+					},
+					"response": []
+				},
+				{
+					"name": "/app/list/:id",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "{{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseURL2}}{{port1}}/app/list/:id",
+							"host": [
+								"{{baseURL2}}{{port1}}"
+							],
+							"path": [
+								"app",
+								"list",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						},
+						"description": "Método que permite consultar una lista de tareas"
+					},
+					"response": []
+				},
+				{
+					"name": "/app/task/:id",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "{{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseURL2}}{{port1}}/app/task/:id",
+							"host": [
+								"{{baseURL2}}{{port1}}"
+							],
+							"path": [
+								"app",
+								"task",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						},
+						"description": "Método que permite consultar una tarea del  sharedData de tareas"
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseURL",
+			"value": "http://127.0.0.1:"
+		},
+		{
+			"key": "baseURL2",
+			"value": "http://192.168.0.155:"
+		},
+		{
+			"key": "port1",
+			"value": "7777"
+		},
+		{
+			"key": "port2",
+			"value": "7778"
+		},
+		{
+			"key": "token",
+			"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyIjoidXN1YXJpbzEiLCJpYXQiOjE2MjY3NTQ5NTV9.1_PdbtPCImf78rvcCE7X_Vufky1RorhdPtLFdgFPHdA"
+		}
+	]
+}
