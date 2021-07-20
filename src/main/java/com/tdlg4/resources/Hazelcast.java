@@ -39,23 +39,21 @@ import static java.lang.Integer.parseInt;
  */
 public class Hazelcast extends AbstractVerticle implements Handler<Message<JsonObject>>{
     private static final Logger LOGGER = LoggerFactory.getLogger(Hazelcast.class);
-    //public static Vertx vertx;
     public static final String SERVICE_ADDRESS = "hazelcast-address";
     public JsonArray tasks=new JsonArray();
-    Config hazelcastConfig = ConfigUtil.loadConfig();
-
-    ClusterManager mgr = new HazelcastClusterManager(hazelcastConfig);
-
-    VertxOptions options = new VertxOptions().setClusterManager(mgr);
+    public Config hazelcastConfig = new Config();
     SharedDataService sds;
     Authenticator auth;
-   
     
     @Override
     public void start(Promise<Void> startPromise) throws Exception {
+    	hazelcastConfig.getNetworkConfig().getJoin().getTcpIpConfig().addMember("192.168.0.155").setEnabled(true);
+    	hazelcastConfig.getNetworkConfig().getJoin().getTcpIpConfig().addMember("192.168.0.55").setEnabled(true);
+    	hazelcastConfig.setProperty("hazelcast.jmx", "true");
+    	hazelcastConfig.getNetworkConfig().getJoin().getMulticastConfig().setEnabled(false);
+    	ClusterManager mgr = new HazelcastClusterManager(hazelcastConfig);
         VertxOptions options = new VertxOptions().setClusterManager(mgr);
-        options.setEventBusOptions(new EventBusOptions()
-                .setClusterPublicHost("192.168.56.1") );
+
         
         Vertx.clusteredVertx(options, res -> {
         vertx.eventBus().consumer(SERVICE_ADDRESS, this);	
