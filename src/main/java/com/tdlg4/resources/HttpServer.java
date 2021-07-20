@@ -42,17 +42,20 @@ public class HttpServer extends AbstractVerticle{
     String sHtml="";
     private static final Logger LOGGER = LoggerFactory.getLogger(HttpServer.class);
     private static final String API_PATH_LIST = "app/list";
+    private static final String API_PATH_LISTS = "app/lists";
     private static final String API_PATH_TASK = "app/task";
     private static final String API_PATH="app";
     /** Declaración de las rutas paths */
     private static final String API_GET_LIST = String.format("/%s/:id", API_PATH_LIST);
     private static final String API_POST_LIST = String.format("/%s", API_PATH_LIST);
+    private static final String API_POST_LISTS = String.format("/%s", API_PATH_LISTS);
     private static final String API_DEL_LIST = String.format("/%s/:id", API_PATH_LIST);
     private static final String API_POST_AUTH = String.format("/%s/login", API_PATH);
     private static final String API_POST_AUTH_VALIDATE = String.format("/%s/validate", API_PATH);
     private static final String API_POST_TASK = String.format("/%s", API_PATH_TASK);
     private static final String API_GET_TASK = String.format("/%s/:id", API_PATH_TASK);
     private static final String API_DEL_TASK = String.format("/%s/:id", API_PATH_TASK);
+    
     
     public JsonObject configJson= new JsonObject();
 
@@ -98,6 +101,7 @@ public class HttpServer extends AbstractVerticle{
         router.post(API_POST_TASK).handler(this::apiPostSaveTask);
         router.get(API_GET_TASK).handler(this::apiGetTask);
         router.delete(API_DEL_TASK).handler(this::apiDelTask);
+        router.get(API_POST_LISTS).handler(this::apiGetAllLists);
        
         
         /* INFO del Servicio */
@@ -513,6 +517,46 @@ public class HttpServer extends AbstractVerticle{
                         if (handler.succeeded()) {
                             jList.put("result", true);
                             context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(jList));
+                        } else {
+                            jList.put("result", false);
+                            context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(jList));
+                        }
+                    });
+                }
+                catch(Exception ex)
+                {
+                    jList.put("result", false);
+                    jList.put("message", ex.getMessage());
+                    context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(ex.getMessage()));
+                }
+            }
+            else
+            {
+                jList.put("result", false);
+                jList.put("message", "user is not authorized");
+                context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(jList));
+            }
+        });
+    }
+    
+    
+     private void apiGetAllLists (RoutingContext context) {
+        /* Test para guardar objeto en memoria local */
+        
+        JsonObject jList=new JsonObject();
+        HttpServerRequest request = context.request();
+        AuthValidate(request, handlerAuth->{
+            if (handlerAuth.succeeded()) {
+                
+                try{
+                    var respHandler=(JsonObject)handlerAuth.result();
+                    var user=respHandler.getString("user");
+                    LOGGER.info("Get all list, user: "+user);
+                    jList.put("action", "getAllLists");
+                    vertx.eventBus().request(Hazelcast.SERVICE_ADDRESS, jList, handler -> {
+                        if (handler.succeeded()) {
+                            jList.put("result", true);
+                            context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode((JsonObject) handler.result().body()));
                         } else {
                             jList.put("result", false);
                             context.response().setStatusCode(200).putHeader("content-type", "application/json").end(Json.encode(jList));

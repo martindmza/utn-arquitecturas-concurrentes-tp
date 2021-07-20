@@ -55,6 +55,37 @@ public class SharedDataService {
             }
         });
     }
+    
+    
+    public void GetAsyncAllListsContextJson(String newMap, Handler<AsyncResult<JsonObject>> resultHandler) {
+        SharedData sharedData = vertx.sharedData();
+        JsonObject respLists=new JsonObject();
+        sharedData.<Integer, JsonObject>getClusterWideMap(newMap, res -> {
+            if (res.succeeded()) {
+                AsyncMap<Integer, JsonObject> map = res.result();
+                map.values(resGet -> {
+                    if (resGet.succeeded()) {
+                        LOGGER.info("Resultado all lists "+resGet.result());
+                        respLists.put("result", true);
+                        respLists.put("lists", resGet.result());
+                        if(resGet.result()!=null)
+                            resultHandler.handle(Future.succeededFuture(respLists));
+                        else
+                            resultHandler.handle(Future.failedFuture(resGet.cause()));
+                    }
+                    else 
+                        resultHandler.handle(Future.failedFuture(resGet.cause()));
+                });     
+            }
+            else 
+            {
+                    // Something went wrong!
+                    LOGGER.info("no existe "+newMap);
+                    resultHandler.handle(Future.failedFuture(res.cause()));
+            }
+        });  
+            
+    }
 
     public void SaveAsyncContextJson(String newMap, Integer key, JsonObject json, Handler<AsyncResult<JsonObject>> resultHandler) {
         SharedData sharedData = vertx.sharedData();

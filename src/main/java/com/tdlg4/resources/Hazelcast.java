@@ -119,6 +119,25 @@ public class Hazelcast extends AbstractVerticle implements Handler<Message<JsonO
                 event.fail(0, "error");
             }
         break;
+        case "getAllLists":
+            try{
+            sds.GetAsyncAllListsContextJson("vertx.list", resGet -> {
+                if (resGet.succeeded()) {
+                    LOGGER.info(String.format("Get all list context OK"));
+                    LOGGER.info(resGet.result());
+                    event.reply(resGet.result());
+                }else {
+                    LOGGER.info(String.format("GET context all list Error"));
+                    event.fail(0, "error");
+                }
+            });
+            }
+            catch(Exception ex)
+            {
+                LOGGER.info(String.format("Get context all list Error"));
+                event.fail(0, "error");
+            }
+        break;
         case "getTask":
             try{
                 
