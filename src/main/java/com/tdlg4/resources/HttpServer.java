@@ -586,13 +586,14 @@ public class HttpServer extends AbstractVerticle{
         allowHeaders.add("origin");
         allowHeaders.add("Content-Type");
         allowHeaders.add("accept");
+        allowHeaders.add("Authorization");
         Set<HttpMethod> allowMethods = new HashSet<>();
         allowMethods.add(HttpMethod.GET);
         allowMethods.add(HttpMethod.POST);
         allowMethods.add(HttpMethod.DELETE);
         allowMethods.add(HttpMethod.PATCH);
 
-        router.route().handler(CorsHandler.create("*").allowedHeaders(allowHeaders).allowedMethods(allowMethods));
+        router.route().handler(CorsHandler.create(".*.").allowedHeaders(allowHeaders).allowedMethods(allowMethods).allowCredentials(true));
     }
 
     /**

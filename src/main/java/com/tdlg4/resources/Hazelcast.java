@@ -47,9 +47,10 @@ public class Hazelcast extends AbstractVerticle implements Handler<Message<JsonO
     
     @Override
     public void start(Promise<Void> startPromise) throws Exception {
-    	hazelcastConfig.getNetworkConfig().getJoin().getTcpIpConfig().addMember("192.168.0.155").setEnabled(true);
-    	hazelcastConfig.getNetworkConfig().getJoin().getTcpIpConfig().addMember("192.168.0.55").setEnabled(true);
-    	hazelcastConfig.setProperty("hazelcast.jmx", "true");
+    	hazelcastConfig.getNetworkConfig().getJoin().getTcpIpConfig().addMember("192.168.0.60").setEnabled(true);
+    	hazelcastConfig.getNetworkConfig().getJoin().getTcpIpConfig().addMember("192.168.0.92").setEnabled(true);
+        hazelcastConfig.getNetworkConfig().getJoin().getTcpIpConfig().addMember("192.168.0.176").setEnabled(true);
+    	//hazelcastConfig.setProperty("hazelcast.jmx", "true");
     	hazelcastConfig.getNetworkConfig().getJoin().getMulticastConfig().setEnabled(false);
     	ClusterManager mgr = new HazelcastClusterManager(hazelcastConfig);
         VertxOptions options = new VertxOptions().setClusterManager(mgr);
