@@ -1,0 +1,33 @@
+.table {
+    width: 50%;
+}
+
+.table thead {
+    text-align: center;
+}
+
+.table tbody tr td{
+    cursor: pointer;
+}
+
+.taskActions {
+    position: absolute;
+    right: 10%;
+    top: 25%
+}
+
+.taskActions button {
+    width: 50px;
+    margin-bottom: 4px;
+}
+
+.taskListsActions {
+    position: absolute;
+    left: 22%;
+    top: 25%
+}
+
+.taskListsActions button {
+    width: 50px;
+    margin-bottom: 4px;
+}
